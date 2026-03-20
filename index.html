@@ -241,6 +241,67 @@
         font-size: 1.35rem;
       }
     }
+
+    @media (max-width: 950px) and (orientation: landscape) {
+      .game-shell {
+        padding: 10px 12px;
+      }
+
+      .hud {
+        gap: 8px;
+        margin-bottom: 8px;
+        align-items: flex-start;
+      }
+
+      .title-block {
+        gap: 2px;
+        max-width: 220px;
+      }
+
+      h1 {
+        font-size: 1.15rem;
+      }
+
+      .subtitle {
+        font-size: 0.76rem;
+        line-height: 1.2;
+      }
+
+      .stats {
+        gap: 6px;
+        justify-content: flex-end;
+        flex: 1;
+      }
+
+      .pill {
+        min-width: 82px;
+        padding: 7px 9px;
+        border-radius: 14px;
+        font-size: 0.72rem;
+      }
+
+      .pill strong {
+        font-size: 0.96rem;
+        margin-top: 1px;
+      }
+
+      #resetGame {
+        width: auto;
+        padding: 9px 12px;
+        border-radius: 14px;
+        font-size: 0.8rem;
+        box-shadow: 0 6px 14px rgba(16, 37, 66, 0.18);
+      }
+
+      canvas {
+        border-radius: 16px;
+      }
+
+      .footer-note {
+        margin-top: 6px;
+        font-size: 0.78rem;
+      }
+    }
   </style>
 </head>
 <body>
