@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#a8def7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Toilet Paper Toss</title>
+  <style>
+    :root {
+      --bg-top: #a8def7;
+      --bg-bottom: #f8fbff;
+      --panel: rgba(16, 37, 66, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.14);
+      --text-main: #f8fbff;
+      --text-soft: #d9ebfb;
+      --accent: #ffd447;
+      --accent-strong: #ff9457;
+      --ground-top: #7bc76b;
+      --ground-bottom: #519847;
+      --button: #11365f;
+      --button-hover: #1b4c80;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.55), transparent 28%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      color: var(--text-main);
+    }
+
+    .game-shell {
+      width: min(100vw - 24px, 1000px);
+      padding: 18px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
+      box-shadow: 0 24px 70px rgba(16, 37, 66, 0.25);
+      backdrop-filter: blur(8px);
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.7rem, 2.8vw, 2.4rem);
+      color: #0e3156;
+      letter-spacing: 0.03em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #2f537d;
+      font-size: 0.98rem;
+    }
+
+    .stats {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 12px 16px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      color: var(--text-soft);
+      min-width: 150px;
+    }
+
+    .pill strong {
+      display: block;
+      color: var(--accent);
+      font-size: 1.25rem;
+      margin-top: 3px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 18px;
+      padding: 14px 20px;
+      font: inherit;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(180deg, var(--button-hover), var(--button));
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(16, 37, 66, 0.22);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 22px;
+      background: linear-gradient(180deg, #b7e6ff 0%, #dbf5ff 48%, #f5fbff 100%);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.32);
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    canvas.dragging {
+      cursor: grabbing;
+    }
+
+    .footer-note {
+      margin: 12px 6px 0;
+      color: #31557e;
+      font-size: 0.95rem;
+    }
+
+    .mobile-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(8, 24, 43, 0.68);
+      backdrop-filter: blur(10px);
+      z-index: 20;
+    }
+
+    .mobile-overlay.visible {
+      display: flex;
+    }
+
+    .mobile-card {
+      width: min(100%, 420px);
+      padding: 22px 20px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #12365e;
+      text-align: center;
+      box-shadow: 0 18px 40px rgba(8, 24, 43, 0.22);
+    }
+
+    .mobile-card h2 {
+      margin: 0 0 10px;
+      font-size: 1.5rem;
+    }
+
+    .mobile-card p {
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    .mobile-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .mobile-actions button {
+      min-width: 164px;
+    }
+
+    .mobile-actions button.secondary {
+      background: linear-gradient(180deg, #6a88a9, #46698f);
+    }
+
+    .mobile-hint {
+      margin-top: 14px;
+      font-size: 0.92rem;
+      color: #416283;
+    }
+
+    body.mobile-immersive {
+      overflow: hidden;
+    }
+
+    body.mobile-immersive .game-shell {
+      width: 100vw;
+      min-height: 100vh;
+      padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+      border-radius: 0;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        display: block;
+      }
+
+      .game-shell {
+        width: 100vw;
+        min-height: 100vh;
+        border-radius: 0;
+        padding: 14px;
+      }
+
+      .pill {
+        min-width: 128px;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .stats {
+        width: 100%;
+      }
+
+      .mobile-card h2 {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-overlay" id="mobileOverlay" aria-live="polite">
+    <div class="mobile-card">
+      <h2 id="mobileOverlayTitle">Melhor na horizontal</h2>
+      <p id="mobileOverlayText">Gire o celular para jogar com mais espaço e mira melhor.</p>
+      <div class="mobile-actions">
+        <button id="mobileFullscreen" type="button">Tela cheia</button>
+        <button id="mobileContinue" class="secondary" type="button">Continuar assim</button>
+      </div>
+      <p class="mobile-hint" id="mobileOverlayHint">No iPhone, a tela cheia pode variar conforme o navegador.</p>
+    </div>
+  </div>
+  <main class="game-shell">
+    <section class="hud">
+      <div class="title-block">
+        <h1>Toilet Paper Toss</h1>
+        <p class="subtitle">Puxe o cocozinho, mire no trono e marque pontos com humor pastelão.</p>
+      </div>
+      <div class="stats">
+        <div class="pill">Placar<strong id="score">0</strong></div>
+        <div class="pill">Rodada<strong id="round">1</strong></div>
+        <div class="pill">Combo<strong id="streak">0</strong></div>
+        <div class="pill">Modo<strong id="mode">Livre</strong></div>
+        <button id="resetGame" type="button">Reiniciar tudo</button>
+      </div>
+    </section>
+
+    <canvas id="game" width="960" height="540" aria-label="Jogo Toilet Paper Toss"></canvas>
+    <p class="footer-note">Como jogar: toque ou clique no cocozinho feliz, puxe para trás, solte e tente acertar o vaso. Cada acerto vale 1 ponto.</p>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score");
+    const roundEl = document.getElementById("round");
+    const streakEl = document.getElementById("streak");
+    const modeEl = document.getElementById("mode");
+    const resetGameButton = document.getElementById("resetGame");
+    const mobileOverlay = document.getElementById("mobileOverlay");
+    const mobileOverlayTitle = document.getElementById("mobileOverlayTitle");
+    const mobileOverlayText = document.getElementById("mobileOverlayText");
+    const mobileOverlayHint = document.getElementById("mobileOverlayHint");
+    const mobileFullscreenButton = document.getElementById("mobileFullscreen");
+    const mobileContinueButton = document.getElementById("mobileContinue");
+
+    const CONFIG = {
+      gravity: 840,         // Ajuste aqui a gravidade
+      launchPower: 8.3,     // Ajuste aqui a força do lançamento
+      resetDelay: 1700,     // Ajuste aqui o tempo de reset da rodada
+      betweenShotDelay: 520,
+      floorBounce: 0.14,
+      airDrag: 0.00055,
+      poopRadius: 20,
+      slingAnchor: { x: 164, y: 386 },
+      maxDrag: 150,
+      stopSpeed: 20,
+      aimSamples: 32,
+      targetHitPadding: 18, // Ajuste aqui o tamanho do hitbox do vaso
+      shotSpread: 88
+    };
+
+    const targetLayouts = [
+      { x: 560, y: 392, scale: 1.0 },
+      { x: 640, y: 382, scale: 1.12 },
+      { x: 720, y: 392, scale: 1.26 }
+    ];
+
+    const state = {
+      score: 0,
+      streak: 0,
+      round: 1,
+      level: 1,
+      dragging: false,
+      resolved: false,
+      resultText: "Puxe o cocozinho e solte para lançar.",
+      resultTone: "neutral",
+      resetAt: 0,
+      nextAmmoAt: 0,
+      targetIndex: 0,
+      ammo: null,
+      projectiles: [],
+      obstacles: [],
+      challenge: null,
+      shotsLeft: 1,
+      totalShots: 1,
+      pointer: { x: 0, y: 0 },
+      particles: [],
+      activePointerId: null,
+      targetBobPhase: 0
+    };
+
+    const world = {
+      width: canvas.width,
+      height: canvas.height,
+      floorY: 456
+    };
+
+    const mobileUi = {
+      dismissed: false
+    };
+
+    function isMobileLike() {
+      return window.matchMedia("(max-width: 900px), (pointer: coarse)").matches;
+    }
+
+    function isPortrait() {
+      return window.matchMedia("(orientation: portrait)").matches;
+    }
+
+    function canUseFullscreen() {
+      return Boolean(document.fullscreenEnabled && document.documentElement.requestFullscreen);
+    }
+
+    function updateMobileOverlay() {
+      const mobile = isMobileLike();
+      const portrait = isPortrait();
+      const fullscreen = canUseFullscreen();
+      const activeFullscreen = Boolean(document.fullscreenElement);
+
+      document.body.classList.toggle("mobile-immersive", mobile);
+
+      if (!mobile || mobileUi.dismissed || activeFullscreen) {
+        mobileOverlay.classList.remove("visible");
+        return;
+      }
+
+      mobileFullscreenButton.hidden = !fullscreen;
+
+      if (portrait) {
+        mobileOverlayTitle.textContent = "Melhor na horizontal";
+        mobileOverlayText.textContent = "Gire o celular para jogar com mais espaco e mira melhor.";
+      } else {
+        mobileOverlayTitle.textContent = "Pronto para jogar";
+        mobileOverlayText.textContent = "Se quiser, entre em tela cheia para ganhar mais area de jogo.";
+      }
+
+      mobileOverlayHint.textContent = fullscreen
+        ? "Se o navegador permitir, o jogo abre mais limpo e com mais area util."
+        : "No iPhone, a tela cheia pode variar conforme o navegador. Se quiser, use Adicionar a Tela de Inicio.";
+
+      mobileOverlay.classList.add("visible");
+    }
+
+    async function enterFullscreenMode() {
+      if (!canUseFullscreen()) {
+        updateMobileOverlay();
+        return;
+      }
+
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (error) {
+        console.warn("Fullscreen indisponivel:", error);
+      }
+
+      mobileUi.dismissed = true;
+      updateMobileOverlay();
+    }
+
+    function createProjectile() {
+      return {
+        x: CONFIG.slingAnchor.x,
+        y: CONFIG.slingAnchor.y,
+        vx: 0,
+        vy: 0,
+        radius: CONFIG.poopRadius,
+        rotation: 0,
+        restingFrames: 0,
+        trail: [],
+        dead: false
+      };
+    }
+
+    function currentTargetBase() {
+      return targetLayouts[state.targetIndex];
+    }
+
+    function currentTarget() {
+      const base = currentTargetBase();
+      const bob = state.challenge && state.challenge.moveTarget ? Math.sin(state.targetBobPhase) * 9 : 0;
+      return { ...base, y: base.y + bob };
+    }
+
+    function getTargetHitbox() {
+      const target = currentTarget();
+      const width = 104 * target.scale;
+      const height = 112 * target.scale;
+      return {
+        x: target.x - width * 0.38 - CONFIG.targetHitPadding,
+        y: target.y - height * 0.7 - CONFIG.targetHitPadding,
+        width: width * 0.76 + CONFIG.targetHitPadding * 2,
+        height: height * 0.84 + CONFIG.targetHitPadding * 2
+      };
+    }
+
+    function computeLevel() {
+      return 1 + Math.min(4, Math.floor(state.score / 2));
+    }
+
+    function syncHud() {
+      scoreEl.textContent = String(state.score);
+      roundEl.textContent = String(state.round);
+      streakEl.textContent = String(state.streak);
+      modeEl.textContent = state.challenge ? state.challenge.label : "Livre";
+    }
+
+    function setResult(text, tone) {
+      state.resultText = text;
+      state.resultTone = tone;
+    }
+
+    function spawnBurst(x, y, color, amount, speedMin, speedMax) {
+      for (let i = 0; i < amount; i += 1) {
+        const angle = (Math.PI * 2 * i) / amount + Math.random() * 0.25;
+        const speed = speedMin + Math.random() * (speedMax - speedMin);
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 60,
+          life: 0.7 + Math.random() * 0.35,
+          size: 4 + Math.random() * 5,
+          color
+        });
+      }
+    }
+
+    function prepareAmmo() {
+      state.ammo = createProjectile();
+      state.dragging = false;
+      state.activePointerId = null;
+      canvas.classList.remove("dragging");
+    }
+
+    function createObstacle(type, x, y, width, height, hp) {
+      return {
+        type,
+        x,
+        y,
+        width,
+        height,
+        hp,
+        maxHp: hp,
+        broken: false,
+        shake: 0
+      };
+    }
+
+    function buildChallenge(level) {
+      const dualLaunch = level >= 3 && state.round % 3 === 0;
+      const shotsPerRound = level >= 2 ? 2 : 1;
+      const moveTarget = level >= 4;
+      const target = currentTargetBase();
+      const obstacles = [];
+
+      if (level >= 2) {
+        obstacles.push(createObstacle("panel", target.x - 88, target.y - 28, 18, 120, level >= 4 ? 2 : 1));
+      }
+      if (level >= 3) {
+        obstacles.push(createObstacle("crate", target.x - 170, world.floorY - 40, 44, 44, 1));
+      }
+      if (level >= 4) {
+        obstacles.push(createObstacle("crate", target.x - 220, world.floorY - 86, 44, 44, 1));
+      }
+      if (level >= 5) {
+        obstacles.push(createObstacle("panel", target.x - 144, target.y + 8, 14, 84, 1));
+      }
+
+      let label = "Livre";
+      if (dualLaunch && shotsPerRound > 1) {
+        label = "Combo Duplo";
+      } else if (dualLaunch) {
+        label = "Cocos Gêmeos";
+      } else if (shotsPerRound > 1) {
+        label = "Duas Chances";
+      }
+      if (moveTarget) {
+        label = dualLaunch ? "Chefe Móvel" : "Alvo Móvel";
+      }
+
+      return { level, dualLaunch, shotsPerRound, moveTarget, obstacles, label };
+    }
+
+    function resetRoundState() {
+      state.dragging = false;
+      state.resolved = false;
+      state.resetAt = 0;
+      state.nextAmmoAt = 0;
+      state.projectiles = [];
+      state.particles = [];
+      state.activePointerId = null;
+      canvas.classList.remove("dragging");
+    }
+
+    function beginRound() {
+      state.level = computeLevel();
+      state.targetIndex = (state.round - 1) % targetLayouts.length;
+      state.challenge = buildChallenge(state.level);
+      state.obstacles = state.challenge.obstacles;
+      state.totalShots = state.challenge.shotsPerRound;
+      state.shotsLeft = state.challenge.shotsPerRound;
+      state.targetBobPhase = 0;
+      resetRoundState();
+      prepareAmmo();
+
+      if (state.challenge.dualLaunch) {
+        setResult("Rodada dupla. Lance cocos gêmeos e abra caminho.", "neutral");
+      } else if (state.shotsLeft > 1) {
+        setResult("Quebre a proteção e use o segundo cocozinho para o vaso.", "neutral");
+      } else {
+        setResult("Puxe o cocozinho e solte para lançar.", "neutral");
+      }
+
+      syncHud();
+    }
+
+    function nextRound() {
+      state.round += 1;
+      beginRound();
+    }
+
+    function resetGame() {
+      state.score = 0;
+      state.streak = 0;
+      state.round = 1;
+      beginRound();
+    }
+
+    function resolveRound(hit) {
+      if (state.resolved) return;
+      state.resolved = true;
+      state.dragging = false;
+      state.resetAt = performance.now() + CONFIG.resetDelay;
+      state.activePointerId = null;
+      state.ammo = null;
+
+      if (hit) {
+        state.score += 1;
+        state.streak += 1;
+        setResult(`Pluft! Combo ${state.streak}. Vaso acertado.`, "success");
+        spawnBurst(currentTarget().x - 8, currentTarget().y - 12, "#ffd447", 18, 120, 320);
+        spawnBurst(currentTarget().x + 6, currentTarget().y + 18, "#7fd6ff", 12, 80, 220);
+      } else {
+        state.streak = 0;
+        setResult("Rodada perdida. O banheiro sobreviveu ao caos.", "miss");
+      }
+      syncHud();
+    }
+
+    function clampDrag(x, y) {
+      const dx = x - CONFIG.slingAnchor.x;
+      const dy = y - CONFIG.slingAnchor.y;
+      const length = Math.hypot(dx, dy);
+      if (length <= CONFIG.maxDrag) {
+        return { x, y };
+      }
+      const ratio = CONFIG.maxDrag / length;
+      return {
+        x: CONFIG.slingAnchor.x + dx * ratio,
+        y: CONFIG.slingAnchor.y + dy * ratio
+      };
+    }
+
+    function getPointerPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY
+      };
+    }
+
+    function isPointerOnAmmo(point) {
+      if (!state.ammo) return false;
+      return Math.hypot(point.x - state.ammo.x, point.y - state.ammo.y) <= state.ammo.radius + 8;
+    }
+
+    function launchAmmo() {
+      if (!state.ammo) return;
+      const dx = CONFIG.slingAnchor.x - state.ammo.x;
+      const dy = CONFIG.slingAnchor.y - state.ammo.y;
+      const stretch = Math.hypot(dx, dy);
+
+      if (stretch < 8) {
+        state.ammo.x = CONFIG.slingAnchor.x;
+        state.ammo.y = CONFIG.slingAnchor.y;
+        state.dragging = false;
+        state.activePointerId = null;
+        canvas.classList.remove("dragging");
+        return;
+      }
+
+      const releaseOffset = 10;
+      const releaseX = CONFIG.slingAnchor.x + (dx / stretch) * releaseOffset;
+      const releaseY = CONFIG.slingAnchor.y + (dy / stretch) * releaseOffset;
+      const baseVx = dx * CONFIG.launchPower;
+      const baseVy = dy * CONFIG.launchPower;
+
+      const spawnShot = (vx, vy, xOffset = 0, yOffset = 0) => {
+        const projectile = createProjectile();
+        projectile.x = releaseX + xOffset;
+        projectile.y = releaseY + yOffset;
+        projectile.vx = vx;
+        projectile.vy = vy;
+        projectile.rotation = Math.random() * 0.4 - 0.2;
+        state.projectiles.push(projectile);
+      };
+
+      if (state.challenge && state.challenge.dualLaunch) {
+        spawnShot(baseVx * 0.98, baseVy - CONFIG.shotSpread * 0.22, -8, -5);
+        spawnShot(baseVx * 1.02, baseVy + CONFIG.shotSpread * 0.18, 8, 4);
+      } else {
+        spawnShot(baseVx, baseVy);
+      }
+
+      state.dragging = false;
+      state.activePointerId = null;
+      state.shotsLeft -= 1;
+      state.ammo = null;
+      setResult(`Cocozinhos no ar. Tentativas restantes: ${state.shotsLeft}`, "neutral");
+      canvas.classList.remove("dragging");
+    }
+
+    function circleIntersectsRect(circle, rect) {
+      const closestX = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width));
+      const closestY = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+      const dx = circle.x - closestX;
+      const dy = circle.y - closestY;
+      return (dx * dx + dy * dy) <= circle.radius * circle.radius;
+    }
+
+    function projectileHitsObstacle(projectile, obstacle) {
+      return !obstacle.broken && circleIntersectsRect(projectile, obstacle);
+    }
+
+    function damageObstacle(obstacle, projectile) {
+      obstacle.hp -= 1;
+      obstacle.shake = 0.22;
+      spawnBurst(projectile.x, projectile.y, obstacle.type === "panel" ? "#9ad3f8" : "#c48a57", 9, 50, 150);
+
+      const centerX = obstacle.x + obstacle.width / 2;
+      const centerY = obstacle.y + obstacle.height / 2;
+      const dx = projectile.x - centerX;
+      const dy = projectile.y - centerY;
+
+      if (Math.abs(dx / obstacle.width) > Math.abs(dy / obstacle.height)) {
+        projectile.vx = (dx < 0 ? -1 : 1) * Math.max(Math.abs(projectile.vx) * 0.5, 145);
+        projectile.vy *= 0.72;
+      } else {
+        projectile.vy = (dy < 0 ? -1 : 1) * Math.max(Math.abs(projectile.vy) * 0.42, 130);
+        projectile.vx *= 0.7;
+      }
+
+      if (obstacle.hp <= 0) {
+        obstacle.broken = true;
+        spawnBurst(centerX, centerY, obstacle.type === "panel" ? "#dff6ff" : "#e1ad70", 18, 70, 240);
+      }
+    }
+
+    function update(dt, now) {
+      state.targetBobPhase += dt * 4;
+
+      for (let i = state.particles.length - 1; i >= 0; i -= 1) {
+        const particle = state.particles[i];
+        particle.life -= dt;
+        particle.vy += CONFIG.gravity * 0.35 * dt;
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        if (particle.life <= 0) state.particles.splice(i, 1);
+      }
+
+      for (const obstacle of state.obstacles) {
+        obstacle.shake = Math.max(0, obstacle.shake - dt);
+      }
+
+      if (state.resolved) {
+        if (now >= state.resetAt) {
+          nextRound();
+        }
+        return;
+      }
+
+      const hitbox = getTargetHitbox();
+      for (const projectile of state.projectiles) {
+        projectile.vy += CONFIG.gravity * dt;
+        projectile.vx *= 1 - Math.min(CONFIG.airDrag * dt * 1000, 0.08);
+        projectile.x += projectile.vx * dt;
+        projectile.y += projectile.vy * dt;
+        projectile.rotation += projectile.vx * dt * 0.03;
+        projectile.trail.push({ x: projectile.x, y: projectile.y, life: 0.32 });
+        if (projectile.trail.length > 16) projectile.trail.shift();
+
+        for (let i = projectile.trail.length - 1; i >= 0; i -= 1) {
+          projectile.trail[i].life -= dt;
+          if (projectile.trail[i].life <= 0) projectile.trail.splice(i, 1);
+        }
+
+        let obstacleCollision = false;
+        for (const obstacle of state.obstacles) {
+          if (projectileHitsObstacle(projectile, obstacle)) {
+            damageObstacle(obstacle, projectile);
+            obstacleCollision = true;
+            break;
+          }
+        }
+
+        if (!obstacleCollision && circleIntersectsRect(projectile, hitbox)) {
+          resolveRound(true);
+          projectile.dead = true;
+          break;
+        }
+
+        if (projectile.y + projectile.radius >= world.floorY) {
+          projectile.y = world.floorY - projectile.radius;
+          if (Math.abs(projectile.vy) < 70) {
+            projectile.vy = 0;
+          } else {
+            projectile.vy *= -CONFIG.floorBounce;
+          }
+          projectile.vx *= 0.75;
+
+          if (Math.abs(projectile.vx) < CONFIG.stopSpeed && Math.abs(projectile.vy) < CONFIG.stopSpeed) {
+            projectile.restingFrames += 1;
+          } else {
+            projectile.restingFrames = 0;
+          }
+        }
+
+        if (projectile.x - projectile.radius > world.width + 60 || projectile.y - projectile.radius > world.height + 60) {
+          projectile.dead = true;
+        }
+
+        if (projectile.restingFrames > 10) {
+          projectile.dead = true;
+        }
+      }
+
+      state.projectiles = state.projectiles.filter((projectile) => !projectile.dead);
+
+      if (!state.dragging && !state.ammo && state.projectiles.length === 0) {
+        if (state.shotsLeft > 0) {
+          if (!state.nextAmmoAt) {
+            state.nextAmmoAt = now + CONFIG.betweenShotDelay;
+            setResult(`Mais um cocozinho. Restam ${state.shotsLeft} tentativa(s).`, "neutral");
+          } else if (now >= state.nextAmmoAt) {
+            state.nextAmmoAt = 0;
+            prepareAmmo();
+          }
+        } else {
+          resolveRound(false);
+        }
+      }
+    }
+
+    function drawBackground() {
+      const gradient = ctx.createLinearGradient(0, 0, 0, world.height);
+      gradient.addColorStop(0, "#bce9ff");
+      gradient.addColorStop(0.55, "#e9f9ff");
+      gradient.addColorStop(1, "#fbffff");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, world.width, world.height);
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+      drawCloud(145, 88, 0.95);
+      drawCloud(322, 125, 0.7);
+      drawCloud(792, 108, 1.15);
+
+      ctx.fillStyle = "#e1c48a";
+      ctx.fillRect(0, world.floorY - 38, world.width, 44);
+
+      const floorGradient = ctx.createLinearGradient(0, world.floorY - 14, 0, world.height);
+      floorGradient.addColorStop(0, "#83d274");
+      floorGradient.addColorStop(1, "#4c9a42");
+      ctx.fillStyle = floorGradient;
+      ctx.fillRect(0, world.floorY, world.width, world.height - world.floorY);
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+      for (let i = 0; i < 18; i += 1) {
+        const x = 44 + i * 54;
+        ctx.beginPath();
+        ctx.arc(x, world.floorY + 30 + (i % 2) * 8, 15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawCloud(x, y, scale) {
+      ctx.beginPath();
+      ctx.arc(x, y, 24 * scale, Math.PI * 0.9, Math.PI * 1.9);
+      ctx.arc(x + 26 * scale, y - 12 * scale, 28 * scale, Math.PI, Math.PI * 2);
+      ctx.arc(x + 58 * scale, y, 25 * scale, Math.PI * 1.1, Math.PI * 1.95);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawSlingshot() {
+      const anchor = CONFIG.slingAnchor;
+      const backPeg = { x: anchor.x - 18, y: anchor.y - 4 };
+      const frontPeg = { x: anchor.x + 14, y: anchor.y + 5 };
+
+      ctx.strokeStyle = "#7a4d1d";
+      ctx.lineWidth = 14;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(anchor.x - 28, world.floorY);
+      ctx.lineTo(anchor.x - 16, anchor.y - 2);
+      ctx.moveTo(anchor.x + 18, world.floorY);
+      ctx.lineTo(anchor.x + 12, anchor.y + 10);
+      ctx.stroke();
+
+      ctx.strokeStyle = "#d6b17a";
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(backPeg.x, anchor.y - 58);
+      ctx.lineTo(backPeg.x + 8, anchor.y - 8);
+      ctx.moveTo(frontPeg.x, anchor.y - 54);
+      ctx.lineTo(frontPeg.x - 6, anchor.y + 2);
+      ctx.stroke();
+
+      if (state.dragging && state.ammo) {
+        ctx.strokeStyle = "#5a3511";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(backPeg.x, anchor.y - 42);
+        ctx.lineTo(state.ammo.x, state.ammo.y);
+        ctx.lineTo(frontPeg.x, anchor.y - 34);
+        ctx.stroke();
+
+        ctx.fillStyle = "#6a3f19";
+        ctx.beginPath();
+        ctx.ellipse(state.ammo.x, state.ammo.y, 18, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawPowerMeter() {
+      if (!state.dragging || !state.ammo) return;
+      const dx = CONFIG.slingAnchor.x - state.ammo.x;
+      const dy = CONFIG.slingAnchor.y - state.ammo.y;
+      const power = Math.min(Math.hypot(dx, dy) / CONFIG.maxDrag, 1);
+      const x = 32;
+      const y = 30;
+      const width = 126;
+      const height = 14;
+
+      ctx.fillStyle = "rgba(13, 42, 73, 0.18)";
+      ctx.beginPath();
+      ctx.roundRect(x, y, width, height, 999);
+      ctx.fill();
+
+      const gradient = ctx.createLinearGradient(x, y, x + width, y);
+      gradient.addColorStop(0, "#ffd447");
+      gradient.addColorStop(1, "#ff7f50");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(x, y, width * power, height, 999);
+      ctx.fill();
+
+      ctx.fillStyle = "#11365f";
+      ctx.font = "700 14px Trebuchet MS";
+      ctx.fillText("Potência", x, y - 8);
+    }
+
+    function drawAimGuide() {
+      if (!state.dragging || !state.ammo) return;
+
+      const startX = state.ammo.x;
+      const startY = state.ammo.y;
+      const velX = (CONFIG.slingAnchor.x - state.ammo.x) * CONFIG.launchPower;
+      const velY = (CONFIG.slingAnchor.y - state.ammo.y) * CONFIG.launchPower;
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(17, 54, 95, 0.18)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      for (let i = 1; i <= CONFIG.aimSamples; i += 1) {
+        const t = i * 0.08;
+        const x = startX + velX * t;
+        const y = startY + velY * t + 0.5 * CONFIG.gravity * t * t;
+        if (y > world.floorY) break;
+        if (i === 1) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(17, 54, 95, 0.26)";
+      for (let i = 1; i <= CONFIG.aimSamples; i += 1) {
+        const t = i * 0.08;
+        const x = startX + velX * t;
+        const y = startY + velY * t + 0.5 * CONFIG.gravity * t * t;
+        if (y > world.floorY) break;
+        const alpha = 1 - i / (CONFIG.aimSamples + 2);
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(2.3, 5 - i * 0.12), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawPoop(projectile) {
+      ctx.save();
+      ctx.translate(projectile.x, projectile.y);
+      ctx.rotate(projectile.rotation);
+
+      ctx.fillStyle = "#7b4a20";
+      ctx.beginPath();
+      ctx.moveTo(-11, 11);
+      ctx.bezierCurveTo(-20, 6, -20, -2, -8, -8);
+      ctx.bezierCurveTo(-18, -16, -10, -24, 0, -20);
+      ctx.bezierCurveTo(-4, -30, 8, -34, 14, -22);
+      ctx.bezierCurveTo(24, -22, 24, -8, 14, -2);
+      ctx.bezierCurveTo(22, 4, 20, 15, 8, 17);
+      ctx.bezierCurveTo(3, 21, -6, 19, -11, 11);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = "#5c3415";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.fillStyle = "#9f6a38";
+      ctx.beginPath();
+      ctx.ellipse(2, 2, 9, 6, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(-6, -4, 3.4, 0, Math.PI * 2);
+      ctx.arc(7, -5, 3.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#1f1a17";
+      ctx.beginPath();
+      ctx.arc(-6, -4, 1.5, 0, Math.PI * 2);
+      ctx.arc(7, -5, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#1f1a17";
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(0, 4, 6, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawPoopShadow(projectile) {
+      ctx.fillStyle = "rgba(11, 49, 86, 0.12)";
+      ctx.beginPath();
+      ctx.ellipse(projectile.x, world.floorY + 6, 20, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawProjectileTrails() {
+      for (const projectile of state.projectiles) {
+        for (const point of projectile.trail) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(point.life / 0.32, 0);
+          ctx.fillStyle = "#9d6a3b";
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 7 * (point.life / 0.32), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+
+    function drawObstacles() {
+      for (const obstacle of state.obstacles) {
+        if (obstacle.broken) continue;
+        const shakeX = obstacle.shake > 0 ? Math.sin(obstacle.shake * 60) * 3 : 0;
+        ctx.save();
+        ctx.translate(shakeX, 0);
+
+        if (obstacle.type === "panel") {
+          ctx.fillStyle = "#dff6ff";
+          ctx.strokeStyle = "#5aa5d8";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.roundRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#5aa5d8";
+          ctx.beginPath();
+          ctx.roundRect(obstacle.x + 3, obstacle.y + 16, obstacle.width - 6, obstacle.height - 32, 6);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = "#c88a4f";
+          ctx.strokeStyle = "#8d5b2f";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.roundRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, 6);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.strokeStyle = "#9c6738";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(obstacle.x + 6, obstacle.y + 6);
+          ctx.lineTo(obstacle.x + obstacle.width - 6, obstacle.y + obstacle.height - 6);
+          ctx.moveTo(obstacle.x + obstacle.width - 6, obstacle.y + 6);
+          ctx.lineTo(obstacle.x + 6, obstacle.y + obstacle.height - 6);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function drawToilet() {
+      const target = currentTarget();
+      const { x, y, scale } = target;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+
+      ctx.fillStyle = "rgba(30, 68, 98, 0.12)";
+      ctx.beginPath();
+      ctx.ellipse(0, 77, 54, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#f7fbff";
+      ctx.strokeStyle = "#9ac0dd";
+      ctx.lineWidth = 4;
+
+      ctx.beginPath();
+      ctx.roundRect(-42, -26, 68, 58, 18);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(-8, 20, 44, 28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = "#89b5d7";
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.arc(-8, 20, 30, Math.PI * 0.15, Math.PI * 1.85);
+      ctx.stroke();
+
+      ctx.fillStyle = "#d7effd";
+      ctx.beginPath();
+      ctx.ellipse(-8, 20, 23, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#f7fbff";
+      ctx.beginPath();
+      ctx.roundRect(-18, 28, 30, 40, 10);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.roundRect(-50, 57, 76, 16, 7);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffc94d";
+      ctx.beginPath();
+      ctx.roundRect(7, -11, 10, 18, 5);
+      ctx.fill();
+
+      ctx.fillStyle = "#2c537d";
+      ctx.font = "700 15px Trebuchet MS";
+      ctx.fillText("flush", -26, -44);
+
+      ctx.restore();
+    }
+
+    function drawAmmoCounter() {
+      const displayShots = state.shotsLeft;
+      const label = state.challenge && state.challenge.dualLaunch ? "salvas" : "cocos";
+      ctx.fillStyle = "rgba(15, 48, 84, 0.78)";
+      ctx.beginPath();
+      ctx.roundRect(world.width - 208, 24, 184, 58, 16);
+      ctx.fill();
+
+      ctx.fillStyle = "#f5fbff";
+      ctx.font = "700 16px Trebuchet MS";
+      ctx.fillText(`Nivel ${state.level}  |  ${displayShots}/${state.totalShots} ${label}`, world.width - 192, 47);
+      ctx.fillStyle = "#d9ebfb";
+      ctx.font = "14px Trebuchet MS";
+      ctx.fillText(state.challenge ? state.challenge.label : "Livre", world.width - 192, 67);
+    }
+
+    function drawParticles() {
+      for (const particle of state.particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(particle.life, 0);
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawTargetCelebration() {
+      if (state.resultTone !== "success" || !state.resolved) return;
+      const target = currentTarget();
+      ctx.save();
+      ctx.translate(target.x - 10, target.y - 76);
+      for (let i = 0; i < 10; i += 1) {
+        const angle = (Math.PI * 2 * i) / 10;
+        const length = 20 + (i % 2) * 10;
+        ctx.strokeStyle = i % 2 ? "#ffd447" : "#ff9457";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * 18, Math.sin(angle) * 18);
+        ctx.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawResultBanner() {
+      const toneColors = {
+        neutral: ["rgba(15, 48, 84, 0.82)", "#f5fbff"],
+        success: ["rgba(24, 122, 73, 0.86)", "#f3fff9"],
+        miss: ["rgba(168, 76, 24, 0.88)", "#fff8f1"]
+      };
+      const [bg, fg] = toneColors[state.resultTone] || toneColors.neutral;
+      const width = 430;
+      const height = 48;
+      const x = world.width / 2 - width / 2;
+      const y = 26;
+
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.roundRect(x, y, width, height, 18);
+      ctx.fill();
+
+      ctx.fillStyle = fg;
+      ctx.font = "700 20px Trebuchet MS";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(state.resultText, world.width / 2, y + height / 2 + 1);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    }
+
+    function drawGroundDecor() {
+      ctx.fillStyle = "#5fae53";
+      for (let i = 0; i < 12; i += 1) {
+        const x = 28 + i * 78;
+        ctx.beginPath();
+        ctx.moveTo(x, world.floorY + 18);
+        ctx.quadraticCurveTo(x + 6, world.floorY - 6 - (i % 3) * 6, x + 12, world.floorY + 18);
+        ctx.quadraticCurveTo(x + 18, world.floorY - 5, x + 24, world.floorY + 18);
+        ctx.fill();
+      }
+    }
+
+    function render() {
+      drawBackground();
+      drawGroundDecor();
+      drawObstacles();
+      drawToilet();
+      drawTargetCelebration();
+      drawSlingshot();
+      drawAimGuide();
+      drawPowerMeter();
+      drawAmmoCounter();
+      drawProjectileTrails();
+      if (state.ammo) {
+        drawPoopShadow(state.ammo);
+        drawPoop(state.ammo);
+      }
+      for (const projectile of state.projectiles) {
+        drawPoop(projectile);
+      }
+      drawParticles();
+      drawResultBanner();
+    }
+
+    function onPointerDown(event) {
+      event.preventDefault();
+      if (!state.ammo || state.resolved) return;
+      if (state.activePointerId !== null) return;
+      const point = getPointerPosition(event);
+      state.pointer = point;
+      if (!isPointerOnAmmo(point)) return;
+      state.dragging = true;
+      state.activePointerId = event.pointerId;
+      canvas.classList.add("dragging");
+      canvas.setPointerCapture?.(event.pointerId);
+    }
+
+    function onPointerMove(event) {
+      if (state.activePointerId !== null && event.pointerId !== state.activePointerId) return;
+      event.preventDefault();
+      const point = getPointerPosition(event);
+      state.pointer = point;
+      if (!state.dragging) return;
+      const clamped = clampDrag(point.x, point.y);
+      state.ammo.x = clamped.x;
+      state.ammo.y = clamped.y;
+    }
+
+    function onPointerUp(event) {
+      if (state.activePointerId !== null && event.pointerId !== state.activePointerId) return;
+      event.preventDefault();
+      if (!state.dragging) return;
+      launchAmmo();
+    }
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+    canvas.addEventListener("pointerleave", () => {
+      if (!state.dragging) return;
+      launchAmmo();
+    });
+    canvas.addEventListener("lostpointercapture", () => {
+      if (!state.dragging) return;
+      launchAmmo();
+    });
+
+    resetGameButton.addEventListener("click", resetGame);
+    mobileFullscreenButton.addEventListener("click", enterFullscreenMode);
+    mobileContinueButton.addEventListener("click", () => {
+      mobileUi.dismissed = true;
+      updateMobileOverlay();
+    });
+    window.addEventListener("resize", updateMobileOverlay);
+    window.addEventListener("orientationchange", updateMobileOverlay);
+    document.addEventListener("fullscreenchange", updateMobileOverlay);
+
+    let previousTime = performance.now();
+    function gameLoop(now) {
+      const dt = Math.min((now - previousTime) / 1000, 0.025);
+      previousTime = now;
+      update(dt, now);
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    resetGame();
+    updateMobileOverlay();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
